@@ -1,80 +1,95 @@
+![The GenRAIT logo](./assets/genrait.png)
+# Nextflow Template for the genRAIT platform
 
-
-# genrait/nextflow-template
-
-[![GitHub Actions CI Status](https://github.com/genrait/nextflow-template/actions/workflows/ci.yml/badge.svg)](https://github.com/genrait/nextflow-template/actions/workflows/ci.yml)
-[![GitHub Actions Linting Status](https://github.com/genrait/nextflow-template/actions/workflows/linting.yml/badge.svg)](https://github.com/genrait/nextflow-template/actions/workflows/linting.yml)[![Cite with Zenodo](http://img.shields.io/badge/DOI-10.5281/zenodo.XXXXXXX-1073c8?labelColor=000000)](https://doi.org/10.5281/zenodo.XXXXXXX)
-[![nf-test](https://img.shields.io/badge/unit_tests-nf--test-337ab7.svg)](https://www.nf-test.com)
-
-[![Nextflow](https://img.shields.io/badge/nextflow%20DSL2-%E2%89%A524.04.2-23aa62.svg)](https://www.nextflow.io/)
-[![run with conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
-[![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
-[![run with singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
-[![Launch on Seqera Platform](https://img.shields.io/badge/Launch%20%F0%9F%9A%80-Seqera%20Platform-%234256e7)](https://cloud.seqera.io/launch?pipeline=https://github.com/genrait/nextflow-template)
-
-## Introduction
-
-**genrait/nextflow-template** is a bioinformatics pipeline that ...
-
-<!-- TODO nf-core:
-   Complete this sentence with a 2-3 sentence summary of what types of data the pipeline ingests, a brief overview of the
-   major pipeline sections and the types of output it produces. You're giving an overview to someone new
-   to nf-core here, in 15-20 seconds. For an example, see https://github.com/nf-core/rnaseq/blob/master/README.md#introduction
--->
-
-<!-- TODO nf-core: Include a figure that guides the user through the major workflow steps. Many nf-core
-     workflows use the "tube map" design for that. See https://nf-co.re/docs/contributing/design_guidelines#examples for examples.   -->
-<!-- TODO nf-core: Fill in short bullet-pointed list of the default steps in the pipeline -->
-
-1. Read QC ([`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Present QC for raw reads ([`MultiQC`](http://multiqc.info/))
+This template provides a basic starting point for working with [Nextflow](https://www.nextflow.io/) and [nf-core](https://nf-co.re/) on the [GenRAIT](https://genrait.com/) platform.  It is based on [nf-core/demo](https://github.com/nf-core/demo).
 
 ## Usage
 
 > [!NOTE]
 > If you are new to Nextflow and nf-core, please refer to [this page](https://nf-co.re/docs/usage/installation) on how to set-up Nextflow. Make sure to [test your setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline) with `-profile test` before running the workflow on actual data.
 
-<!-- TODO nf-core: Describe the minimum required steps to execute the pipeline, e.g. how to prepare samplesheets.
-     Explain what rows and columns represent. For instance (please edit as appropriate):
+### Requirements
+In order to install modules and update a workflows parameters the user needs:
 
-First, prepare a samplesheet with your input data that looks as follows:
+- [nf-core/tools](https://nf-co.re/docs/nf-core-tools/installation)
+- [Nextflow](https://www.nextflow.io/)
 
-`samplesheet.csv`:
+### Using nf-core modules
 
-```csv
-sample,fastq_1,fastq_2
-CONTROL_REP1,AEG588A1_S1_L002_R1_001.fastq.gz,AEG588A1_S1_L002_R2_001.fastq.gz
+We recommend using the nf-core ecosystem where possible, especially using nf-core [modules](https://nf-co.re/modules).
+
+
+List available modules:
+
+``` bash
+nf-core modules list remote
 ```
 
-Each row represents a fastq file (single-end) or a pair of fastq files (paired end).
+Install a module:
 
--->
-
-Now, you can run the pipeline using:
-
-<!-- TODO nf-core: update the following command to include all required parameters for a minimal example -->
-
-```bash
-nextflow run genrait/nextflow-template \
-   -profile <docker/singularity/.../institute> \
-   --input samplesheet.csv \
-   --outdir <OUTDIR>
+``` bash
+nf-core modules install zip
 ```
 
-> [!WARNING]
-> Please provide pipeline parameters via the CLI or Nextflow `-params-file` option. Custom config files including those provided by the `-c` Nextflow option can be used to provide any configuration _**except for parameters**_; see [docs](https://nf-co.re/docs/usage/getting_started/configuration#custom-configuration-files).
+Modules will be placed in the `modules` directory, and can be imported like any other Nextflow module:
 
-## Credits
+``` groovy
+include { FASTQC } from '../modules/nf-core/fastqc/main'
 
-genrait/nextflow-template was originally written by genRAIT Inc..
+workflow EXAMPLE_WORKFLOW {
 
-We thank the following people for their extensive assistance in the development of this pipeline:
+    take:
+    ch_samplesheet 
+    main:
 
-<!-- TODO nf-core: If applicable, make list of people who have also contributed -->
+    ch_versions = Channel.empty()
+    ch_multiqc_files = Channel.empty()
+    //
+    // MODULE: Run FastQC
+    //
+    FASTQC (
+        ch_samplesheet
+    )
+    FASTQC.out.view()
+}
+```
 
-## Contributions and Support
 
-If you would like to contribute to this pipeline, please see the [contributing guidelines](.github/CONTRIBUTING.md).
+### Writing processes
+
+The user can refer to the Nextflow [documentation](https://www.nextflow.io/docs/latest/process.html) on writing processes.  In order for the genRAIT platform to resolve software dependencies, the user needs to declare per-process or global dependencies with the [conda directive](https://www.nextflow.io/docs/latest/reference/process.html#conda).
+
+``` groovy
+process bwaIndex {
+    conda "bwa=0.7.15" // <---
+
+    input:
+    path reference
+
+    output:
+    tuple val(reference.name), path("${reference}.amb"), path("${reference}.ann"), path("${reference}.bwt"), path("${reference}.sa"), path("${reference}.pac")
+
+    """
+    bwa index $reference
+    """
+}
+```
+
+### Parameters
+
+In order for the genRAIT platform to import a workflow, there must be a `nextflow_schema.json` in the root directory.  Pipeline [parameters](https://www.nextflow.io/docs/latest/config.html#parameters) must be declared in `nextflow.config` (see [here](https://www.nextflow.io/docs/latest/workflow.html#using-parameters) for more information on how to use parameters in your pipeline).
+
+When new parameters are added, use the nf-core schema builder to rebuild the file:
+
+``` bash
+nf-core pipelines schema build
+```
+
+### Importing your workflow on genRAIT
+
+Import your folder to your genRAIT storage and select "Create Workflow" from the dropdown.
+
+<!-- TODO Add screenshot here -->
 
 ## Citations
 
