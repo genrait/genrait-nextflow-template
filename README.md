@@ -1,5 +1,5 @@
 ![The GenRAIT logo](./assets/genrait.png)
-# Nextflow Template for the genRAIT platform
+# Nextflow Template for the genRAITplatform
 
 This template provides a basic starting point for working with [Nextflow](https://www.nextflow.io/) and [nf-core](https://nf-co.re/) on the [GenRAIT](https://genrait.com/) platform.  It is based on [nf-core/demo](https://github.com/nf-core/demo).
 
@@ -84,6 +84,28 @@ When new parameters are added, use the nf-core schema builder to rebuild the fil
 ``` bash
 nf-core pipelines schema build
 ```
+
+
+> [!NOTE]
+> Parameters which represent files or folders during runtime must be declared as such, either through the interactive schema builder, or manually in the `nextflow_schema.json`.
+>
+> ![The GenRAIT logo](./assets/genrait.png) 
+>
+> Here is a parameter marked as a folder in the schema file:
+> ``` json
+> ...
+>   "properties": {
+>     "outputDir": {
+>       "type": "string",
+>       "default": "./",
+>       "fa_icon": "fas fa-folder",
+>       "format": "directory-path",
+>       "hidden": false
+>     }
+>   }
+> ...
+> ```
+
 
 ### Importing your workflow on genRAIT
 
