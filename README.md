@@ -89,7 +89,7 @@ nf-core pipelines schema build
 > [!NOTE]
 > Parameters which represent files or folders during runtime must be declared as such, either through the interactive schema builder, or manually in the `nextflow_schema.json`.
 >
-> ![The GenRAIT logo](./assets/genrait.png) 
+> ![The GenRAIT logo](./assets/schema-build-example.png) 
 >
 > Here is a parameter marked as a folder in the schema file:
 > ``` json
