@@ -146,7 +146,7 @@ handle complex data processing patterns.
 > [this page](https://nf-co.re/docs/usage/installation) on how to set-up
 > Nextflow. Make sure to [test your
 > setup](https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline)
-> with `-profile test`{.verbatim} before running the workflow on actual
+> with `-profile test` before running the workflow on actual
 > data.
 
 ### Requirements
@@ -174,7 +174,7 @@ Install a module:
 nf-core modules install zip
 ```
 
-Modules will be placed in the `modules`{.verbatim} directory, and can be
+Modules will be placed in the `modules` directory, and can be
 imported like any other Nextflow module:
 
 ``` groovy
@@ -226,9 +226,9 @@ process bwaIndex {
 ### Parameters
 
 In order for the genRAIT platform to import a workflow, there must be a
-`nextflow_schema.json`{.verbatim} in the root directory. Pipeline
+`nextflow_schema.json` in the root directory. Pipeline
 [parameters](https://www.nextflow.io/docs/latest/config.html#parameters)
-must be declared in `nextflow.config`{.verbatim} (see
+must be declared in `nextflow.config` (see
 [here](https://www.nextflow.io/docs/latest/workflow.html#using-parameters)
 for more information on how to use parameters in your pipeline).
 
@@ -241,7 +241,7 @@ nf-core pipelines schema build
 
 > \[!NOTE\] Parameters which represent files or folders during runtime
 > must be declared as such, either through the interactive schema
-> builder, or manually in the `nextflow_schema.json`{.verbatim}.
+> builder, or manually in the `nextflow_schema.json`.
 >
 > ![Setting parameter metadata with nf-core\'s schema
 > builder](./assets/schema-build-example.png)
@@ -269,7 +269,7 @@ Workflow\" from the dropdown.
 
 ![](./assets/create-workflow-action.png)
 
-If there is a `nextflow_schema.json`{.verbatim} file in the folder, the
+If there is a `nextflow_schema.json` file in the folder, the
 GenRAIT system should detect it and allow you to import your workflow:
 
 ![](./assets/import-workflow-modal.png)
