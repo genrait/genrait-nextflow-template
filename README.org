@@ -1,0 +1,270 @@
+[[./assets/genrait.png]]
+* Nextflow Template for the genRAITplatform
+
+This template provides a basic starting point for working with
+[[https://www.nextflow.io/][Nextflow]] and
+[[https://nf-co.re/][nf-core]] on the [[https://genrait.com/][GenRAIT]]
+platform. It is based on
+[[https://github.com/nf-core/demo][nf-core/demo]].
+
+
+** What is Nextflow?
+:PROPERTIES:
+:CUSTOM_ID: what-is-nextflow
+:END:
+
+Nextflow is a workflow management system that enables scalable and reproducible scientific workflows. It allows you to write complex pipeline processes using a simple scripting language while handling parallel execution across compute environments. With Nextflow, you can easily combine scripts written in different languages (Python, R, Bash, etc.), automatically handle errors, and resume pipelines from the last successful step. Through the nf-core ecosystem, you also get access to a rich collection of pre-built modules and pipelines that can accelerate your workflow development.
+
+From the Nextflow documentation:
+#+begin_quote
+The Nextflow language is inspired by the [[https://en.wikipedia.org/wiki/Unix_philosophy][Unix philosophy]], in which many simple command line tools can be chained together into increasingly complex tasks. Similarly, a Nextflow script consists of composing many simple processes into increasingly complex pipelines. Each process executes a given tool or scripting language, and by specifying the process inputs and outputs, Nextflow coordinates the execution of tasks for you.
+#+end_quote
+
+*** Processes
+Here's a simple example of a Nextflow [[https://www.nextflow.io/docs/latest/process.html][process]]:
+
+#+begin_src groovy
+process EXAMPLE {
+    input:
+    path input_file
+
+    output:
+    path "output.txt"
+
+    script:
+    """
+    cat ${input_file} > output.txt
+    echo "Process complete" >> output.txt
+    """
+}
+#+end_src
+
+This shows the basic structure of a Nextflow process: it defines its inputs (a file path), outputs (a new file), and the script to execute. Nextflow handles all the file management, execution tracking, and parallelization behind the scenes. When combined into workflows, these processes become powerful data processing pipelines that can handle complex bioinformatics tasks.
+
+Here is a more complicated example:
+
+
+#+begin_src groovy
+process FASTQ_TRIM {
+    conda "fastq=1.1.1"
+
+    input:
+    tuple val(sample_id), path(reads)
+
+    output:
+    tuple val(sample_id), path("*_trimmed.fastq.gz"), emit: trimmed_reads
+    path "*.log", emit: logs
+
+    script:
+    """
+    trim_galore --paired \
+        --quality 20 \
+        --output_dir . \
+        --basename ${sample_id} \
+        ${reads[0]} ${reads[1]}
+    """
+}
+#+end_src
+
+
+*** Workflows
+
+Here is an example Nextflow [[https://www.nextflow.io/docs/latest/workflow.html][workflow]]:
+#+begin_src groovy
+workflow {
+    Channel
+        .fromPath('data/*.fastq.gz')
+        .map { file ->
+            def sample = file.name.replaceAll(/_R[12].fastq.gz$/, '')
+            return tuple(sample, file)
+        }
+        .groupTuple()
+        .set { read_pairs_ch }
+
+    FASTQ_TRIM(read_pairs_ch)
+    ALIGNMENT(FASTQ_TRIM.out.trimmed_reads)
+    VARIANT_CALL(ALIGNMENT.out.bam)
+}
+#+end_src
+
+This workflow shows how channels and processes work together: it creates a channel from FASTQ files, processes them to extract sample IDs, groups related files together, then pipes the data through a series of processes (FASTQ_TRIM, ALIGNMENT, and VARIANT_CALL) to perform a typical genomics analysis pipeline. Each process builds on the output of the previous one, creating a complete data processing workflow.
+
+*** Channels
+Workflows orchestrate processes, but [[https://www.nextflow.io/docs/latest/channel.html][channels]] are how Nextflow deals with data:
+#+begin_src groovy
+// Create a channel from files
+reads_ch = Channel.fromPath('data/*.fastq.gz')
+
+// Transform data in a channel
+filtered_ch = reads_ch
+    .map { file ->
+        def sample = file.name.replaceAll(/.fastq.gz$/, '')
+        return tuple(sample, file)
+    }
+    .filter { id, file ->
+        file.size() > 1000
+    }
+
+// Combine multiple channels
+results_ch = Channel.from(1,2,3)
+    .combine(Channel.from('A','B'))
+#+end_src
+
+Channels are Nextflow's way of handling data flow between processes. They can transform, filter, and combine data streams, making it easy to handle complex data processing patterns.
+** Usage
+:PROPERTIES:
+:CUSTOM_ID: usage
+:END:
+
+#+begin_quote
+[!NOTE] If you are new to Nextflow and nf-core, please refer to
+[[https://nf-co.re/docs/usage/installation][this page]] on how to set-up
+Nextflow. Make sure to
+[[https://nf-co.re/docs/usage/introduction#how-to-run-a-pipeline][test
+your setup]] with =-profile test= before running the workflow on actual
+data.
+
+#+end_quote
+
+*** Requirements
+:PROPERTIES:
+:CUSTOM_ID: requirements
+:END:
+In order to install modules and update a workflows parameters the user
+needs:
+
+- [[https://nf-co.re/docs/nf-core-tools/installation][nf-core/tools]]
+- [[https://www.nextflow.io/][Nextflow]]
+
+*** Using nf-core modules
+:PROPERTIES:
+:CUSTOM_ID: using-nf-core-modules
+:END:
+We recommend using the nf-core ecosystem where possible, especially
+using nf-core [[https://nf-co.re/modules][modules]].
+
+List available modules:
+
+#+begin_src sh
+nf-core modules list remote
+#+end_src
+
+Install a module:
+
+#+begin_src sh
+nf-core modules install zip
+#+end_src
+
+Modules will be placed in the =modules= directory, and can be imported
+like any other Nextflow module:
+
+#+begin_src groovy
+include { FASTQC } from '../modules/nf-core/fastqc/main'
+
+workflow EXAMPLE_WORKFLOW {
+
+    take:
+    ch_samplesheet 
+    main:
+
+    ch_versions = Channel.empty()
+    ch_multiqc_files = Channel.empty()
+    //
+    // MODULE: Run FastQC
+    //
+    FASTQC (
+        ch_samplesheet
+    )
+    FASTQC.out.view()
+}
+#+end_src
+
+*** Writing processes
+:PROPERTIES:
+:CUSTOM_ID: writing-processes
+:END:
+The user can refer to the Nextflow
+[[https://www.nextflow.io/docs/latest/process.html][documentation]] on
+writing processes. In order for the genRAIT platform to resolve software
+dependencies, the user needs to declare per-process or global
+dependencies with the
+[[https://www.nextflow.io/docs/latest/reference/process.html#conda][conda
+directive]].
+
+#+begin_src groovy
+process bwaIndex {
+    conda "bwa=0.7.15" // <---
+
+    input:
+    path reference
+
+    output:
+    tuple val(reference.name), path("${reference}.amb"), path("${reference}.ann"), path("${reference}.bwt"), path("${reference}.sa"), path("${reference}.pac")
+
+    """
+    bwa index $reference
+    """
+}
+#+end_src
+
+*** Parameters
+:PROPERTIES:
+:CUSTOM_ID: parameters
+:END:
+In order for the genRAIT platform to import a workflow, there must be a
+=nextflow_schema.json= in the root directory. Pipeline
+[[https://www.nextflow.io/docs/latest/config.html#parameters][parameters]]
+must be declared in =nextflow.config= (see
+[[https://www.nextflow.io/docs/latest/workflow.html#using-parameters][here]]
+for more information on how to use parameters in your pipeline).
+
+When new parameters are added, use the nf-core schema builder to rebuild
+the file:
+
+#+begin_src sh
+nf-core pipelines schema build
+#+end_src
+
+#+begin_quote
+[!NOTE] Parameters which represent files or folders during runtime must
+be declared as such, either through the interactive schema builder, or
+manually in the =nextflow_schema.json=.
+
+#+caption: Setting parameter metadata with nf-core's schema builder
+[[./assets/schema-build-example.png]]
+
+Here is a parameter marked as a folder in the schema file:
+
+#+begin_src json
+...
+  "properties": {
+    "outputDir": {
+      "type": "string",
+      "default": "./",
+      "fa_icon": "fas fa-folder",
+      "format": "directory-path",
+      "hidden": false
+    }
+  }
+...
+#+end_src
+
+#+end_quote
+
+*** Importing your workflow on genRAIT
+:PROPERTIES:
+:CUSTOM_ID: importing-your-workflow-on-genrait
+:END:
+Import your folder to your genRAIT storage and select "Create Workflow" from the dropdown.
+
+[[./assets/create-workflow-action.png]]
+
+If there is a =nextflow_schema.json= file in the folder, the GenRAIT system should detect it and allow you to import your workflow:
+
+[[./assets/import-workflow-modal.png]]
+
+Give it a name, and if you want to overwrite one of your older workflows, you can give it the same name and increment your version.  GenRAIT will always use the latest version of a workflow that it has available.
+
+Now, you should be able to see your workflow in the Analytics Hub.  Make sure you select "Imported Workflows" from the dropdown.
+
+[[./assets/imported-workflow-in-analytics-runner.png]]
